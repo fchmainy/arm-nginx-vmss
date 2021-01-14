@@ -1,0 +1,9 @@
+{
+    "$schema": "https://aka.ms/azure-quickstart-templates-metadata-schema#",
+    "type": "QuickStart",
+    "itemDisplayName": "VM Scale Set of Nginx+ on Ubuntu 18.04 VMs",
+    "description": "VM Scale Set of Nginx+ on Ubuntu 18.04 VMs",
+    "summary": "This template deploys a VM Scale Set of Nginx+ on Ubuntu 18.04 VMs behind an Azure load balancer with NAT rules for ssh connections and Auto scale integrated",
+    "githubUsername": "fchmainy",
+    "dateUpdated": "2021-01-14"
+  }
