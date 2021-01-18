@@ -34,7 +34,7 @@
         }
       },
       "ctrlUserPassword": {
-        "type": "string",
+        "type": "securestring",
         "metadata": {
           "description": "Controller Administrator password."
         }
@@ -380,7 +380,7 @@
         }
       },
       {
-      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "type": "Microsoft.Compute/virtualMachineScaleSets/extensions",
       "name": "[concat(variables('namingInfix'),'/newuserscript')]",
       "apiVersion": "2020-06-01",
       "location": "[resourceGroup().location]",
