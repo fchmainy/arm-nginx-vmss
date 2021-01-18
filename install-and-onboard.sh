@@ -7,6 +7,7 @@
 # $5: Gateway Name
 # $6: Controller Admin Email Address
 # $7: Controller Admin Password
+# $8. Controller API Key
 
 CONTROLLER_URL=https://$1:8443/1.4
 mkdir -p /etc/ssl/nginx
