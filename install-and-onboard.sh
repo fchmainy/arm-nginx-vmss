@@ -12,8 +12,8 @@
 CONTROLLER_URL=https://$1:8443/1.4
 mkdir -p /etc/ssl/nginx
 
-echo $2 > /etc/ssl/nginx/nginx-repo.crt
-echo $3 > /etc/ssl/nginx/nginx-repo.key
+echo $2  | base64 --decode > /etc/ssl/nginx/nginx-repo.crt
+echo $3  | base64 --decode > /etc/ssl/nginx/nginx-repo.key
 
 wget https://nginx.org/keys/nginx_signing.key
 wget https://cs.nginx.com/static/keys/nginx_signing.key && sudo apt-key add nginx_signing.key
@@ -28,14 +28,26 @@ sudo apt-get update
 sudo apt-get install app-protect
 
 sudo nginx -v
-load_module modules/ngx_http_app_protect_module.so;
-app_protect_enable on;
 
+wget -O /etc/nginx/nginx.conf https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/nginx.conf
+mv nginx.conf /etc/nginx/nginx.conf
 sudo service nginx start
 
 # ------ Install NGINX Controller Agent
-curl -k -sS -L ${CONTROLLER_URL}/install/controller/ > install.sh \
-sh ./install.sh -y --insecure -l $4
+vmName=$(hostname -f)
+echo $vmName
+CONTROLLER_URL=https://$1
+echo $CONTROLLER_URL
+
+# ------ Install NGINX Controller Agent
+curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
+export API_KEY=$2
+echo $API_KEY
+
+CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
+echo "${1} ${CONTROLLER_FQDN}" > /etc/hosts
+
+sh ./install.sh -l $3 -i $vmName --insecure
 
 # ------- Register to the Controller
 # Set the following environment variables
@@ -52,14 +64,14 @@ export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | aw
 curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$6"'","password": "'"$7"'"}}'
 
 gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
-
+wget https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json
 # if the gateway does not exist, we are creating it, otherwise we add the instance reference to the gateway.
 if [ $gwExists -ne 200 ]
 then
-        envsubst < gateways.json > $HOSTNAME.json
+        envsubst < gateways.json > $vmName.json
 else
 	curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 -o update.json
-	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > $HOSTNAME.json
+	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > $vmName.json
 
 fi
 curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @$HOSTNAME.json --header 'Content-Type: application/json' --url 'https://'$CTRL_FQDN'/api/v1/services/environments/'$4'/gateways/'$5
