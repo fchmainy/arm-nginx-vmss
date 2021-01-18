@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Have a controller up and running. Create location and environment.
 # $1: Controller IP Address
 # $2: nginx-repo.crt b64
 # $3: nginx-repo.key b64
@@ -8,6 +9,7 @@
 # $6: Controller Admin Email Address
 # $7: Controller Admin Password
 # $8. Controller API Key
+# $9. Environment service.
 
 CONTROLLER_URL=https://$1:8443/1.4
 mkdir -p /etc/ssl/nginx
@@ -59,22 +61,51 @@ sh ./install.sh -l $3 -i $vmName --insecure
 
 export HOSTNAME="$(hostname -f)"
 export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | awk -F':8443' '{print $1}')
+export CONTROLLER_URL=https://$1
+export LOCATION=$4
+export GATEWAY=$5
 
-# AUthenticate to controller with credentials in order to get the Session Token
+# ------ Install NGINX Controller Agent
+curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
+export API_KEY=$8
+echo $API_KEY
+
+CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
+echo "${1} ${CONTROLLER_FQDN}" >> /etc/hosts
+
+sh ./install.sh -l $4 -i $HOSTNAME --insecure
+
+# ------- Register to the Controller
+# Set the following environment variables
+# export CTRL_IP
+# export CTRL_FQDN=controller.f5demolab.org
+# export CTRL_USERNAME
+# export CTRL_PASSWORD
+# export LOCATION=aks
+
+
+export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | awk -F':8443' '{print $1}')
+
+# Authenticate to controller with credentials in order to get the Session Token
 curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$6"'","password": "'"$7"'"}}'
 
 gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
+echo $gwExists
 wget https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json
+
 # if the gateway does not exist, we are creating it, otherwise we add the instance reference to the gateway.
 if [ $gwExists -ne 200 ]
 then
-        envsubst < gateways.json > $vmName.json
+	echo "Gateway does not exist"
+	envsubst < gateways.json > gwPayload.json
+	cat
 else
+	echo "Gateway exists... adding instance to gateway"
 	curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 -o update.json
-	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > $vmName.json
+	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > gwPayload.json
 
 fi
-curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @$HOSTNAME.json --header 'Content-Type: application/json' --url 'https://'$CTRL_FQDN'/api/v1/services/environments/'$4'/gateways/'$5
+curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5
 
 #---------- Remove Agent at VM Destruction -------------
 

@@ -57,6 +57,12 @@
           "description": "target Location of the instance as defined in the controller."
         }
       },
+      "Environment": {
+        "type": "string",
+        "metadata": {
+          "description": "Environment created on the controller for the gateway."
+        }
+      },
       "gateway": {
         "type": "string",
         "metadata": {
@@ -396,7 +402,7 @@
           "fileUris": [
             "https://raw.githubusercontent.com/fchmainy/arm-nginx-controller/main/install-and-onboard.sh"
           ],
-          "commandToExecute": "[concat('sudo sh install-and-onboard.sh ', ' ', parameters('ControllerFQDN'), ' ', parameters('nginx-repo.crt'), ' ', parameters('nginx-repo.key'), ' ', parameters('instanceLocation'), ' ', parameters('gateway'), ' ', parameters('ctrlUserEmail'), ' ', parameters('ctrlUserPassword'), ' ', parameters('controllerAPIKey'))]"
+          "commandToExecute": "[concat('sudo sh install-and-onboard.sh ', ' ', parameters('ControllerFQDN'), ' ', parameters('nginx-repo.crt'), ' ', parameters('nginx-repo.key'), ' ', parameters('instanceLocation'), ' ', parameters('gateway'), ' ', parameters('ctrlUserEmail'), ' ', parameters('ctrlUserPassword'), ' ', parameters('controllerAPIKey'), ' ', parameters('environment'))]"
 
         }
        }
