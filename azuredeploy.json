@@ -385,7 +385,7 @@
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('namingInfix'),'/newuserscript')]",
       "apiVersion": "2020-06-01",
-      "location": "[parameters('location')]",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[resourceId('Microsoft.Compute/virtualMachines/', variables('namingInfix'))]"
       ],
