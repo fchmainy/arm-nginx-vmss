@@ -95,7 +95,8 @@ sh ./install.sh -l $4 -i $HOSTNAME --insecure
 
 # export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | awk -F':8443' '{print $1}')
 
-
+# Create Environment
+curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X POST -d '{"metadata":{"name":"$4"}}' --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments'
 
 gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
 echo $gwExists
