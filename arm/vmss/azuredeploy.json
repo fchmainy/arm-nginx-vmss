@@ -116,7 +116,7 @@
     "variables": {
       "namingInfix": "[toLower(substring(concat(parameters('vmssName'), uniqueString(resourceGroup().id)), 0, 9))]",
       "longNamingInfix": "[toLower(parameters('vmssName'))]",
-      "vmSize": "Standard_D4_V2",
+      "vmSize": "Standard_D1_v2",
       "publicIPAddressName": "[concat(variables('namingInfix'), 'pip')]",
       "nsgName": "[concat(uniquestring(concat(resourceGroup().id, variables('namingInfix'))), '-nsg')]",
       "loadBalancerName": "[concat(variables('namingInfix'), 'lb')]",

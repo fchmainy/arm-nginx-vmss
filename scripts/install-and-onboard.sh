@@ -35,6 +35,12 @@ wget -O /etc/nginx/nginx.conf https://raw.githubusercontent.com/fchmainy/arm-ngi
 mv nginx.conf /etc/nginx/nginx.conf
 sudo service nginx start
 
+# Authenticate to controller with credentials in order to get the Session Token
+curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$6"'","password": "'"$7"'"}}'
+
+# First, let's get the APIKey. it will be useful to onboard the instances onto the controller
+apikey=$(curl -X GET -b cookie.txt -sk -H "Content-Type: application/json" https://$1/api/v1/platform/global | jq .currentStatus.agentSettings.apiKey)
+
 # ------ Install NGINX Controller Agent
 vmName=$(hostname -f)
 echo $vmName
@@ -45,6 +51,9 @@ echo $CONTROLLER_URL
 curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
 export API_KEY=$2
 echo $API_KEY
+
+
+
 
 CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
 echo "${1} ${CONTROLLER_FQDN}" > /etc/hosts
@@ -84,14 +93,14 @@ sh ./install.sh -l $4 -i $HOSTNAME --insecure
 # export LOCATION=aks
 
 
-export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | awk -F':8443' '{print $1}')
+# export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | awk -F':8443' '{print $1}')
 
-# Authenticate to controller with credentials in order to get the Session Token
-curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$6"'","password": "'"$7"'"}}'
+
 
 gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
 echo $gwExists
 wget https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json
+
 
 # if the gateway does not exist, we are creating it, otherwise we add the instance reference to the gateway.
 if [ $gwExists -ne 200 ]
