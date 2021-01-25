@@ -258,7 +258,7 @@ resource "azurerm_virtual_machine_scale_set_extension" "onboarding" {
   type_handler_version         = "2.0"
   settings = jsonencode({
     "commandToExecute" = "sh install-and-onboard.sh ${var.ctrlIPAddr} ${var.nginx-repo-crt} ${var.nginx-repo-key} ${var.instanceLocation} ${var.instanceGW} ${var.useremail} ${var.ctrlpassword} ${var.APIKEY} ${var.svcEnv}",
-    "fileUris": ["https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/install-and-onboard.sh",
+    "fileUris": ["https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/install-and-onboard.sh",
 		 "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/nginx.conf",
 		 "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json"]
   })
