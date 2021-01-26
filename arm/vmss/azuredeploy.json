@@ -14,17 +14,23 @@
             "description": "Name of the Subnet where is located the private NIC of the Controller."
         }
         },
-      "ControllerFQDN": {
+        "ProdSubnetName": {
+        "type": "string",
+        "metadata": {
+            "description": "Name of the Subnet where is located the private NIC of the Controller."
+        }
+        },
+        "MgtSubnetName": {
+        "type": "string",
+        "metadata": {
+            "description": "Name of the Subnet where is located the private NIC of the Controller."
+        }
+        },
+      "ControllerIP": {
         "type": "string",
         "defaultValue": "controller.f5demolab.org",
         "metadata": {
-          "description": "Fully Qualified Domain Name for the Controller."
-        }
-      },
-      "controllerAPIKey": {
-        "type": "string",
-        "metadata": {
-          "description": "API Key."
+          "description": "Private IP Address of the Controller."
         }
       },
       "ctrlUserEmail": {
@@ -127,7 +133,8 @@
       "natStartPort": 50000,
       "natEndPort": 50119,
       "natBackendPort": 22,
-      "nicName": "[concat(variables('namingInfix'), 'nic')]",
+      "ProdnicName": "[concat(variables('namingInfix'), '-prod-nic')]",
+      "MgtnicName": "[concat(variables('namingInfix'), '-mgmt-nic')]",
       "ipConfigName": "[concat(variables('namingInfix'), 'ipconfig')]",
       "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/loadBalancerFrontEnd')]",
       "osType": {
@@ -203,7 +210,7 @@
           ]
         }
       },
-          {
+      {
         "name": "[variables('nsgName')]",
         "type": "Microsoft.Network/networkSecurityGroups",
         "apiVersion": "2015-06-15",
@@ -220,7 +227,7 @@
                 "sourceAddressPrefix": "[parameters('restrictedSrcAddress')]",
                 "sourcePortRange": "*",
                 "destinationAddressPrefix": "*",
-                "destinationPortRange": "22"
+                "destinationPortRange": "[]"
               }
             },
             {
@@ -288,7 +295,7 @@
             "networkProfile": {
               "networkInterfaceConfigurations": [
                 {
-                  "name": "[variables('nicName')]",
+                  "name": "[variables('MgtnicName')]",
                   "properties": {
                     "primary": true,
                     "ipConfigurations": [
@@ -296,7 +303,26 @@
                         "name": "[variables('ipConfigName')]",
                         "properties": {
                           "subnet": {
-                            "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('subnetName'))]"
+                            "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('MgtSubnetName'))]"
+                          },
+                          "networkSecurityGroup": {
+                              "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "[variables('ProdnicName')]",
+                  "properties": {
+                    "primary": false,
+                    "ipConfigurations": [
+                      {
+                        "name": "[variables('ipConfigName')]",
+                        "properties": {
+                          "subnet": {
+                            "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('ProdSubnetName'))]"
                           },
                           "loadBalancerBackendAddressPools": [
                             {
@@ -397,15 +423,17 @@
         "publisher": "Microsoft.Azure.Extensions",
         "type": "CustomScript",
         "typeHandlerVersion": "2.0",
+        "enableAutomaticUpgrade": "Automatic",
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "https://raw.githubusercontent.com/fchmainy/arm-nginx-controller/main/install-and-onboard.sh"
+                     "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/terraform/scripts/install-and-onboard.sh",
+                     "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/nginx.conf",
+                     "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/gateways.json"
           ],
-          "commandToExecute": "[concat('sudo sh install-and-onboard.sh ', ' ', parameters('ControllerFQDN'), ' ', parameters('nginx-repo.crt'), ' ', parameters('nginx-repo.key'), ' ', parameters('instanceLocation'), ' ', parameters('gateway'), ' ', parameters('ctrlUserEmail'), ' ', parameters('ctrlUserPassword'), ' ', parameters('controllerAPIKey'), ' ', parameters('environment'))]"
-
+          "commandToExecute": "[concat('sh install-and-onboard.sh ', ' ', parameters('ControllerIP'), ' ', parameters('nginx-repo.crt'), ' ', parameters('nginx-repo.key'), ' ', parameters('instanceLocation'), ' ', parameters('gateway'), ' ', parameters('ctrlUserEmail'), ' ', parameters('ctrlUserPassword'), ' ', parameters('environment'))]"
         }
        }
       }
     ]
-  }
+}
