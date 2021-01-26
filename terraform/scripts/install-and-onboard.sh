@@ -20,6 +20,7 @@ wget https://nginx.org/keys/nginx_signing.key
 wget https://cs.nginx.com/static/keys/nginx_signing.key && sudo apt-key add nginx_signing.key
 
 apt-key add nginx_signing.key
+sudo apt-get update
 sudo apt-get install -y apt-transport-https lsb-release ca-certificates wget curl jq gettext vim net-tools 
 printf "deb https://plus-pkgs.nginx.com/ubuntu `lsb_release -cs` nginx-plus\n" | sudo tee /etc/apt/sources.list.d/nginx-plus.list
 
