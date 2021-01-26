@@ -90,7 +90,7 @@ curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie
 
 gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
 echo $gwExists
-wget https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json
+#wget https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json
 
 
 # if the gateway does not exist, we are creating it, otherwise we add the instance reference to the gateway.
