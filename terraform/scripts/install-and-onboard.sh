@@ -106,7 +106,7 @@ else
 	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > gwPayload.json
 
 fi
-curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$8'/gateways/'$5
+curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url "https://'$1'/api/v1/services/environments/'$8'/gateways/'$5"
 
 #---------- Remove Agent at VM Destruction -------------
 #
