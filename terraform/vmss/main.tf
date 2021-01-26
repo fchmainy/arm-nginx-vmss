@@ -45,8 +45,8 @@ data "azurerm_subnet" "internal" {
   resource_group_name  = data.azurerm_resource_group.resourceGroup.name
 }
 
-resource "azurerm_network_security_group" "nginx-nsg" {
-  name                = "${var.prefix}-sg"
+resource "azurerm_network_security_group" "nginx-dp-nsg" {
+  name                = "${var.prefix}-dp-sg"
   location            = data.azurerm_resource_group.resourceGroup.location
   resource_group_name = data.azurerm_resource_group.resourceGroup.name
 
@@ -75,8 +75,8 @@ resource "azurerm_network_security_group" "nginx-nsg" {
   }
 }
 
-resource "azurerm_public_ip" "nginx-pip" {
-  name                          = "${var.prefix}-ip"
+resource "azurerm_public_ip" "nginx-dp-pip" {
+  name                          = "${var.prefix}-dp-ip"
   location                      = data.azurerm_resource_group.resourceGroup.location
   resource_group_name           = data.azurerm_resource_group.resourceGroup.name
   allocation_method             = "Dynamic"
@@ -90,7 +90,7 @@ resource "azurerm_lb" "vmsslb" {
  resource_group_name = data.azurerm_resource_group.resourceGroup.name
  frontend_ip_configuration {
    name                 = "ipconf-PublicIPAddress-frontend"
-   public_ip_address_id = azurerm_public_ip.nginx-pip.id
+   public_ip_address_id = azurerm_public_ip.nginx-dp-pip.id
  }
   tags 			= data.azurerm_resource_group.resourceGroup.tags
 }
@@ -146,20 +146,21 @@ resource "azurerm_lb_nat_pool" "vmsslbnatRuleSSH" {
 #    name                          = "${var.prefix}ipconfig"
 #    subnet_id                     = data.azurerm_subnet.subnet.id
 #    private_ip_address_allocation = "Dynamic"
-#    public_ip_address_id          = azurerm_public_ip.nginx-pip.id
+#    public_ip_address_id          = azurerm_public_ip.nginx-dp-pip.id
 #  }
 #}
 #
 #resource "azurerm_network_interface_security_group_association" "nic-nsg-assoc" {
 #  network_interface_id      = azurerm_network_interface.nginx-nic.id
-#  network_security_group_id = azurerm_network_security_group.nginx-nsg.id
+#  network_security_group_id = azurerm_network_security_group.nginx-dp-nsg.id
 #}
 resource "azurerm_linux_virtual_machine_scale_set" "dataplanes" {
   name                = "${var.hostname}-nginx-vmss"
   location            = data.azurerm_resource_group.resourceGroup.location
   resource_group_name = data.azurerm_resource_group.resourceGroup.name
-  sku                = var.vm_size
+  sku                 = var.vm_size
   instances	      = 2
+  upgrade_mode	      = "Automatic"
   admin_username      = var.admin_username
   #network_interface_ids         = [azurerm_network_interface.nginx-nic.id]
   #delete_os_disk_on_termination = "true"
@@ -185,7 +186,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "dataplanes" {
   network_interface {
     name				= "management"
     primary 				= true
-    network_security_group_id 		= azurerm_network_security_group.nginx-nsg.id 
+    network_security_group_id 		= azurerm_network_security_group.nginx-dp-nsg.id 
     enable_accelerated_networking	= false
     ip_configuration {
 	name		= "management"
@@ -197,7 +198,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "dataplanes" {
   network_interface {
     name                                = "external"
     primary                             = false
-    network_security_group_id           = azurerm_network_security_group.nginx-nsg.id
+    network_security_group_id           = azurerm_network_security_group.nginx-dp-nsg.id
     enable_accelerated_networking       = false
     ip_configuration {
         name            = "external"
@@ -208,17 +209,17 @@ resource "azurerm_linux_virtual_machine_scale_set" "dataplanes" {
     }
   }
 
-  network_interface {
-    name                                = "internal"
-    primary                             = false
-    network_security_group_id           = azurerm_network_security_group.nginx-nsg.id
-    enable_accelerated_networking       = false
-    ip_configuration {
-        name            = "internal"
-        primary         = false
-        subnet_id       = data.azurerm_subnet.management.id
-    }
-  }
+ # network_interface {
+ #   name                                = "internal"
+ #   primary                             = false
+ #   network_security_group_id           = azurerm_network_security_group.nginx-dp-nsg.id
+ #   enable_accelerated_networking       = false
+ #   ip_configuration {
+ #       name            = "internal"
+ #       primary         = false
+ #       subnet_id       = data.azurerm_subnet.management.id
+ #   }
+ # }
 
 #  provisioner "file" {
 #    source      = "scripts/install-controller.sh"
@@ -228,7 +229,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "dataplanes" {
 #      type     = "ssh"
 #      user     = var.admin_username
 #      private_key = file("~/.ssh/id_rsa")
-#      host     = azurerm_public_ip.nginx-pip.fqdn
+#      host     = azurerm_public_ip.nginx-dp-pip.fqdn
 #    }
 #  }
 #
@@ -245,7 +246,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "dataplanes" {
 #      user     = var.admin_username
 #      #password = var.admin_password
 #      private_key = file("~/.ssh/id_rsa")
-#      host     = azurerm_public_ip.nginx-pip.fqdn
+#      host     = azurerm_public_ip.nginx-dp-pip.fqdn
 #    }
 #  }
 }
@@ -256,12 +257,13 @@ resource "azurerm_virtual_machine_scale_set_extension" "onboarding" {
   publisher                    = "Microsoft.Azure.Extensions"
   type                         = "CustomScript"
   type_handler_version         = "2.0"
+  force_update_tag	       = "v1"
   settings = jsonencode({
-    "commandToExecute" = "sh install-and-onboard.sh ${var.ctrlIPAddr} ${var.nginx-repo-crt} ${var.nginx-repo-key} ${var.instanceLocation} ${var.instanceGW} ${var.useremail} ${var.ctrlpassword} ${var.APIKEY} ${var.svcEnv}",
-    "fileUris": ["https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/install-and-onboard.sh",
-		 "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/nginx.conf",
-		 "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json"]
+ 	"commandToExecute" = "sh install-and-onboard.sh ${var.ctrlIPAddr} ${var.nginx_repo_crt} ${var.nginx_repo_key} ${var.instanceLocation} ${var.instanceGW} ${var.useremail} ${var.ctrlpassword} ${var.svcEnv}",
+        "fileUris": ["https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/terraform/scripts/install-and-onboard.sh",
+                     "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/nginx.conf",
+                     "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/gateways.json"]
+
   })
 }
-
 
