@@ -42,20 +42,20 @@ apikey=$(curl -X GET -b cookie.txt -sk -H "Content-Type: application/json" https
 echo "here is my controller API Key: $apikey"
 
 # ------ Install NGINX Controller Agent
-vmName=$(hostname -f)
-echo $vmName
-CONTROLLER_URL=https://$1
-echo $CONTROLLER_URL
-export API_KEY=$2
-echo $API_KEY
+#vmName=$(hostname -f)
+#echo $vmName
+#CONTROLLER_URL=https://$1
+#echo $CONTROLLER_URL
+#export API_KEY=$2
+#echo $API_KEY
 
 # ------ Install NGINX Controller Agent
-curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
+#curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
 
-CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
-echo "${1} ${CONTROLLER_FQDN}" >> /etc/hosts
+#CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
+#echo "${1} ${CONTROLLER_FQDN}" >> /etc/hosts
 
-sh ./install.sh -l $4 -i $vmName --insecure
+#sh ./install.sh -l $4 -i $vmName --insecure
 
 # ------- Register to the Controller
 # Set the following environment variables
@@ -65,6 +65,8 @@ sh ./install.sh -l $4 -i $vmName --insecure
 # export CTRL_PASSWORD
 # export LOCATION=aks
 
+export API_KEY=$apikey
+echo $API_KEY
 export HOSTNAME="$(hostname -f)"
 export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | awk -F':8443' '{print $1}')
 export CONTROLLER_URL=https://$1
@@ -73,8 +75,8 @@ export GATEWAY=$5
 
 # ------ Install NGINX Controller Agent
 curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
-export API_KEY=$8
-echo $API_KEY
+#export API_KEY=$8
+#echo $API_KEY
 
 CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
 echo "${1} ${CONTROLLER_FQDN}" >> /etc/hosts
@@ -103,7 +105,7 @@ else
 	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > gwPayload.json
 
 fi
-curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5
+curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$8'/gateways/'$5
 
 #---------- Remove Agent at VM Destruction -------------
 #
