@@ -122,11 +122,11 @@ variable "ctrlIPAddr" {
   description = "private IP Address of the controller."
   default     = "*"
 }
-variable "nginx-repo-crt" {
+variable "nginx_repo_crt" {
   description = "base64 encoded nginx-repo.crt."
   default     = "*"
 }
-variable "nginx-repo-key" {
+variable "nginx_repo_key" {
   description = "base64 encoded nginx-repo.key."
   default     = "*"
 }
