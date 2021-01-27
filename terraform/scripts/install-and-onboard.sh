@@ -87,12 +87,11 @@ sh ./install.sh -l $4 -i $HOSTNAME --insecure
 # ------- Register to the Controller
 
 # Create Environment
+echo "create environment"
 curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X POST -d '{"metadata":{"name":"'$8'"}}' --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments'
 
 gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
 echo $gwExists
-#wget https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/gateways.json
-
 
 # if the gateway does not exist, we are creating it, otherwise we add the instance reference to the gateway.
 if [ $gwExists -ne 200 ]
@@ -106,7 +105,8 @@ else
 	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > gwPayload.json
 
 fi
-curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url "https://'$1'/api/v1/services/environments/'$8'/gateways/'$5"
+upsertgw=$(curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$8'/gateways/'$5)
+echo $upsertgw
 
 #---------- Remove Agent at VM Destruction -------------
 #
