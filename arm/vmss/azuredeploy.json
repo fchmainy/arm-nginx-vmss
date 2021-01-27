@@ -259,7 +259,7 @@
         "type": "Microsoft.Compute/virtualMachineScaleSets",
         "name": "[variables('namingInfix')]",
         "location": "[resourceGroup().location]",
-        "apiVersion": "2017-03-30",
+        "apiVersion": "2020-06-01",
         "dependsOn": [
           "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
         ],
@@ -271,7 +271,11 @@
         "properties": {
           "overprovision": true,
           "upgradePolicy": {
-            "mode": "Manual"
+		"mode": "Automatic",
+      		"automaticOSUpgradePolicy": {
+        		"enableAutomaticOSUpgrade": true,
+        		"disableAutomaticRollback": false
+      		}
           },
           "virtualMachineProfile": {
             "storageProfile": {
