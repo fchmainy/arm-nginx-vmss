@@ -22,7 +22,7 @@
         },
       "ControllerIP": {
         "type": "string",
-        "defaultValue": "controller.f5demolab.org",
+        "defaultValue": "10.1.1.4",
         "metadata": {
           "description": "Private IP Address of the Controller."
         }
