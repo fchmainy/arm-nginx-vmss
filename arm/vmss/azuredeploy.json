@@ -336,7 +336,7 @@
           "type": "CustomScript",
           "typeHandlerVersion": "2.1",
           "autoUpgradeMinorVersion": true,
-          "protectedSettings": {
+          "settings": {
             "fileUris": [
                      "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/terraform/scripts/install-and-onboard.sh",
                      "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/nginx.conf",
