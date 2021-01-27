@@ -333,7 +333,6 @@
         ],
         "properties": {
           "name": "autoscalewad",
-          "targetResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
           "enabled": true,
           "profiles": [
             {
@@ -397,7 +396,7 @@
           "publisher": "Microsoft.Azure.Extensions",
           "type": "CustomScript",
           "typeHandlerVersion": "2.1",
-          "enableAutomaticUpgrade": "Automatic",
+          "enableAutomaticUpgrade": true,
           "autoUpgradeMinorVersion": true,
           "protectedSettings": {
             "fileUris": [
