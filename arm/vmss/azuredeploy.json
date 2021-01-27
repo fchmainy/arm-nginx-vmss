@@ -129,7 +129,8 @@
       "natBackendPort": 22,
       "ProdnicName": "[concat(variables('namingInfix'), '-prod-nic')]",
       "MgtnicName": "[concat(variables('namingInfix'), '-mgmt-nic')]",
-      "ipConfigName": "[concat(variables('namingInfix'), 'ipconfig')]",
+      "MgtIPConfigName": "[concat(variables('namingInfix'), '-ipconfig')]",
+      "ProdIPConfigName": "[concat(variables('namingInfix'), '-ipconfig')]",
       "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/loadBalancerFrontEnd')]",
       "osType": {
         "publisher": "Canonical",
@@ -288,49 +289,31 @@
             },
             "networkProfile": {
               "networkInterfaceConfigurations": [
-                {
-                  "name": "[variables('MgtnicName')]",
+                {"name": "[variables('MgtnicName')]",
                   "properties": {
                     "primary": true,
                     "ipConfigurations": [
                       {
-                        "name": "[variables('ipConfigName')]",
+                        "name": "[variables('MgtIPConfigName')]",
                         "properties": {
-                          "subnet": {
-                            "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('MgtSubnetName'))]"
-                          },
-                          "networkSecurityGroup": {
-                              "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]"
-                          }
+                          "subnet": {"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('MgtSubnetName'))]"},
+                          "networkSecurityGroup": {"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]"}
                         }
                       }
                     ]
                   }
                 },
-                {
-                  "name": "[variables('ProdnicName')]",
+                {"name": "[variables('ProdnicName')]",
                   "properties": {
                     "primary": false,
                     "ipConfigurations": [
                       {
-                        "name": "[variables('ipConfigName')]",
+                        "name": "[variables('ProdIPConfigName')]",
                         "properties": {
-                          "subnet": {
-                            "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('ProdSubnetName'))]"
-                          },
-                          "loadBalancerBackendAddressPools": [
-                            {
-                              "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('loadBalancerName'), '/backendAddressPools/', variables('bePoolName'))]"
-                            }
-                          ],
-                          "loadBalancerInboundNatPools": [
-                            {
-                              "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('loadBalancerName'), '/inboundNatPools/', variables('natPoolName'))]"
-                            }
-                          ],
-                          "networkSecurityGroup": {
-                              "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]"
-                          }
+                          "subnet": {"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'), '/subnets/', parameters('ProdSubnetName'))]"},
+                          "loadBalancerBackendAddressPools": [{"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('loadBalancerName'), '/backendAddressPools/', variables('bePoolName'))]"}],
+                          "loadBalancerInboundNatPools": [{"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('loadBalancerName'), '/inboundNatPools/', variables('natPoolName'))]"}],
+                          "networkSecurityGroup": {"id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]"}
                         }
                       }
                     ]
@@ -341,8 +324,7 @@
           }
         }
       },
-      {
-        "type": "Microsoft.Insights/autoscaleSettings",
+      {"type": "Microsoft.Insights/autoscaleSettings",
         "apiVersion": "2015-04-01",
         "name": "autoscalewad",
         "location": "[resourceGroup().location]",
@@ -406,28 +388,26 @@
         }
       },
       {
-      "type": "Microsoft.Compute/virtualMachineScaleSets/extensions",
-      "name": "[concat(variables('namingInfix'),'/newuserscript')]",
-      "apiVersion": "2020-06-01",
-      "location": "[resourceGroup().location]",
-      "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"
-      ],
-      "properties": {
-        "publisher": "Microsoft.Azure.Extensions",
-        "type": "CustomScript",
-        "typeHandlerVersion": "2.0",
-        "enableAutomaticUpgrade": "Automatic",
-        "autoUpgradeMinorVersion": true,
-        "settings": {
-          "fileUris": [
+        "type": "Microsoft.Compute/virtualMachineScaleSets/extensions",
+        "name": "[concat(variables('namingInfix'),'/newuserscript')]",
+        "apiVersion": "2020-06-01",
+        "location": "[resourceGroup().location]",
+        "dependsOn": ["[concat('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"],
+        "properties": {
+          "publisher": "Microsoft.Azure.Extensions",
+          "type": "CustomScript",
+          "typeHandlerVersion": "2.1",
+          "enableAutomaticUpgrade": "Automatic",
+          "autoUpgradeMinorVersion": true,
+          "protectedSettings": {
+            "fileUris": [
                      "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/terraform/scripts/install-and-onboard.sh",
                      "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/nginx.conf",
                      "https://raw.githubusercontent.com/fchmainy/arm-nginx-vmss/main/scripts/gateways.json"
-          ],
-          "commandToExecute": "[concat('sh install-and-onboard.sh ', ' ', parameters('ControllerIP'), ' ', parameters('nginx-repo.crt'), ' ', parameters('nginx-repo.key'), ' ', parameters('instanceLocation'), ' ', parameters('gateway'), ' ', parameters('ctrlUserEmail'), ' ', parameters('ctrlUserPassword'), ' ', parameters('environment'))]"
+            ],
+            "commandToExecute": "[concat('sh install-and-onboard.sh ', ' ', parameters('ControllerIP'), ' ', parameters('nginx-repo.crt'), ' ', parameters('nginx-repo.key'), ' ', parameters('instanceLocation'), ' ', parameters('gateway'), ' ', parameters('ctrlUserEmail'), ' ', parameters('ctrlUserPassword'), ' ', parameters('environment'))]"
+          }
         }
-       }
       }
     ]
 }
