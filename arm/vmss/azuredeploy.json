@@ -68,7 +68,7 @@
         "metadata": {
           "description": "dataplane Gateway to be onboarded to."
         }
-      },      
+      },
       "vmssName": {
         "type": "string",
         "metadata": {
@@ -259,7 +259,7 @@
         "type": "Microsoft.Compute/virtualMachineScaleSets",
         "name": "[variables('namingInfix')]",
         "location": "[resourceGroup().location]",
-        "apiVersion": "2020-06-01",
+        "apiVersion": "2017-03-30",
         "dependsOn": [
           "[concat('Microsoft.Network/loadBalancers/', variables('loadBalancerName'))]"
         ],
@@ -271,11 +271,7 @@
         "properties": {
           "overprovision": true,
           "upgradePolicy": {
-		"mode": "Automatic",
-      		"automaticOSUpgradePolicy": {
-        		"enableAutomaticOSUpgrade": true,
-        		"disableAutomaticRollback": false
-      		}
+            "mode": "Automatic"
           },
           "virtualMachineProfile": {
             "storageProfile": {
@@ -352,3 +348,4 @@
       }
     ]
 }
+
