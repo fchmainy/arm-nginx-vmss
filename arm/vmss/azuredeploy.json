@@ -6,13 +6,7 @@
         "type": "string",
         "metadata": {
             "description": "Name of the VNET."
-        }
-        },
-      "subnetName": {
-        "type": "string",
-        "metadata": {
-            "description": "Name of the Subnet where is located the private NIC of the Controller."
-        }
+          }
         },
         "ProdSubnetName": {
         "type": "string",
