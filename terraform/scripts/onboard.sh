@@ -2,19 +2,19 @@
 
 # Have a controller up and running. Create location and environment.
 # $1: Controller IP Address
-# $2: nginx-repo.crt b64
-# $3: nginx-repo.key b64
+# $2: Controller Admin Email Address
+# $3: Controller Admin Password
 # $4: Instance Location as defined on the controller
 # $5: Gateway Name
-# $6: Controller Admin Email Address
-# $7: Controller Admin Password
-# $8. Environment service.
+# $6. Environment service.
+
+ #${var.ctrlIPAddr} ${var.useremail} ${var.ctrlpassword} ${var.instanceLocation} ${var.instanceGW} ${var.svcEnv
 
 #CONTROLLER_URL=https://$1:8443/1.4
 mkdir -p /etc/ssl/nginx
 
 # Authenticate to controller with credentials in order to get the Session Token
-curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$6"'","password": "'"$7"'"}}'
+curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$2"'","password": "'"$3"'"}}'
 
 # Download nginx-repo cert and keys
 curl -b cookie.txt -c cookie.txt -X GET --url 'https://'$1'/api/v1/platform/licenses/nginx-plus-licenses/controller-provided' --output nginx-plus-certs.gz
@@ -42,7 +42,7 @@ mv nginx.conf /etc/nginx/nginx.conf
 sudo service nginx start
 
 # Authenticate to controller with credentials in order to get the Session Token
-curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$6"'","password": "'"$7"'"}}'
+curl -sk -c cookie.txt -X POST --url 'https://'$1'/api/v1/platform/login' --header 'Content-Type: application/json' --data '{"credentials": {"type": "BASIC","username": "'"$2"'","password": "'"$3"'"}}'
 
 # First, let's get the APIKey. it will be useful to onboard the instances onto the controller
 apikey=$(curl -X GET -b cookie.txt -sk -H "Content-Type: application/json" https://$1/api/v1/platform/global | jq .currentStatus.agentSettings.apiKey)
@@ -50,13 +50,6 @@ echo "here is my controller API Key: $apikey"
 
 
 # ------- Register to the Controller
-# Set the following environment variables
-# export CTRL_IP
-# export CTRL_FQDN=controller.f5demolab.org
-# export CTRL_USERNAME
-# export CTRL_PASSWORD
-# export LOCATION=aks
-
 export API_KEY=$apikey
 echo $API_KEY
 export HOSTNAME="$(hostname -f)"
@@ -64,6 +57,7 @@ export CTRL_FQDN=$(echo $ENV_CONTROLLER_URL | awk -F'https://' '{print $2}' | aw
 export CONTROLLER_URL=https://$1
 export LOCATION=$4
 export GATEWAY=$5
+export SERVICE=$6
 
 # ------ Install NGINX Controller Agent
 curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
@@ -72,15 +66,15 @@ curl -k -sS -L ${CONTROLLER_URL}/install/controller-agent > install.sh
 CONTROLLER_FQDN=$(awk -F '"' '/controller_fqdn=/ { print $2 }' install.sh)
 echo "${1} ${CONTROLLER_FQDN}" >> /etc/hosts
 
-sh ./install.sh -l $4 -i $HOSTNAME --insecure
+sh ./install.sh -l $LOCATION -i $HOSTNAME --insecure
 
 # ------- Register to the Controller
 
 # Create Environment
 echo "create environment"
-curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X POST -d '{"metadata":{"name":"'$8'"}}' --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments'
+curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X POST -d '{"metadata":{"name":"'$SERVICE'"}}' --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments'
 
-gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 --write-out '%{http_code}' --silent --output /dev/null)
+gwExists=$(curl -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$SERVICE'/gateways/'$GATEWAY --write-out '%{http_code}' --silent --output /dev/null)
 echo $gwExists
 
 # if the gateway does not exist, we are creating it, otherwise we add the instance reference to the gateway.
@@ -91,9 +85,9 @@ then
 	cat
 else
 	echo "Gateway exists... adding instance to gateway"
-	curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$4'/gateways/'$5 -o update.json
+	curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt  --header 'Content-Type: application/json' --url 'https://'$1'/api/v1/services/environments/'$SERVICE'/gateways/'$GATEWAY -o update.json
 	jq '.desiredState.ingress.placement.instanceRefs += [{"ref": "/infrastructure/locations/aks/instances/'$HOSTNAME'"}]' update.json > gwPayload.json
 
 fi
-upsertgw=$(curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url https://$1/api/v1/services/environments/$8/gateways/$5)
+upsertgw=$(curl --connect-timeout 30 --retry 10 --retry-delay 5 -sk -b cookie.txt -c cookie.txt -X PUT -d @gwPayload.json --header 'Content-Type: application/json' --url https://$1/api/v1/services/environments/$SERVICE/gateways/$GATEWAY)
 echo $upsertgw
